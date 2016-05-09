@@ -441,36 +441,39 @@ const GooglePlacesAutocomplete = React.createClass({
   },
 
   _renderRow(rowData = {}) {
-    rowData.description = rowData.description || rowData.formatted_address || rowData.name;
+    let myStyles = this.props.styles;
 
-    var descriptionSplit = rowData.description.split(/, (.+)?/);
+    rowData.description = rowData.description || rowData.formatted_address || rowData.name;
+    var descriptionSplit = rowData.description.split(/, (.+)?/); // Split only at first comma
 
     return (
       <TouchableHighlight
         onPress={() =>
           this._onPress(rowData)
         }
-        underlayColor="#c8c7cc"
+        underlayColor={this.props.rowUnderlayColor}
       >
-        <View>
-          <View style={rowData.customLocation ? this.props.styles.customLocationRow : this.props.styles.row}>
+          <View style={rowData.customLocation ? myStyles.customLocationRow : myStyles.row}>
+            <View style={rowData.customLocation ? myStyles.customLocationLeftModule : myStyles.leftModule}>
+
             <Text
-              style={rowData.customLocation ? this.props.styles.customLocationDescription1 : this.props.styles.description1}
+              style={rowData.customLocation ? myStyles.customLocationDescription1 : myStyles.description1}
               numberOfLines={1}
             >
               {descriptionSplit[0]}
             </Text>
             <Text
-              style={rowData.customLocation ? this.props.styles.customLocationDescription2 : this.props.styles.description2}
+              style={rowData.customLocation ? myStyles.customLocationDescription2 : myStyles.description2}
               numberOfLines={1}
             >
               {descriptionSplit[1]}
             </Text>
-
+          </View>
+          <Image style={rowData.customLocation ? myStyles.customLocationRowImage : myStyles.rowImage}
+            source={rowData.customLocation ? this.props.customLocationRowImage : this.props.rowImage}
+            />
 
             {this._renderLoader(rowData)}
-          </View>
-          <View style={this.props.styles.separator} />
         </View>
       </TouchableHighlight>
     );
