@@ -376,7 +376,7 @@ const GooglePlacesAutocomplete = React.createClass({
               this._results = responseJSON.predictions;
 
               var customLocationRow = {
-                description: text.concat(", Custom Location"),
+                description: text.concat(", Create Custom Location"),
                 customLocation: true,
               }
 
