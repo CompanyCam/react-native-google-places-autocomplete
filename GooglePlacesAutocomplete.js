@@ -469,9 +469,11 @@ const GooglePlacesAutocomplete = React.createClass({
               {descriptionSplit[1]}
             </Text>
           </View>
-          <Image style={rowData.customLocation ? myStyles.customLocationRowImage : myStyles.rowImage}
-            source={rowData.customLocation ? this.props.customLocationRowImage : this.props.rowImage}
-            />
+
+          <View style={rowData.customLocation ? myStyles.customLocationRowImage : myStyles.rowImage}>
+            <Image source={rowData.customLocation ? this.props.customLocationRowImage : this.props.rowImage}/>
+          </View>
+
 
             {this._renderLoader(rowData)}
         </View>
