@@ -537,7 +537,15 @@ const GooglePlacesAutocomplete = React.createClass({
     return null;
   },
   render() {
-    let { onChangeText, onFocus, ...userProps } = this.props.textInputProps;
+    let {
+      showBackArrow,
+      actionOnBack,
+      backArrowImage,
+      onChangeText,
+      onFocus,
+      ...userProps
+    } = this.props.textInputProps;
+
     return (
       <View
         style={this.props.styles.container}
@@ -545,6 +553,9 @@ const GooglePlacesAutocomplete = React.createClass({
         <View
           style={this.props.styles.textInputContainer}
         >
+          <TouchableHighlight style={this.props.styles.backArrowContainer} onPress={actionOnBack}>
+            <Image source={backArrowImage} style={this.props.styles.backArrow} />
+          </TouchableHighlight>
           <TextInput
             { ...userProps }
             ref="textInput"
