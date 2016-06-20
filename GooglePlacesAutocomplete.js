@@ -169,10 +169,20 @@ const GooglePlacesAutocomplete = React.createClass({
   _onPress(rowData) {
 
     if(rowData.customLocation) {
-      details= {
-        name: "Custom Location",
-        formatted_address: rowData.description.concat(",   "),
+      const lastIndex = rowData.description.lastIndexOf(',');
+      let formatted_address = rowData.description;
+
+      if (rowData.description.substring(lastIndex) === ', Create Custom Location') {
+        formatted_address = rowData.description.substring(0, lastIndex);
       }
+
+      formatted_address = formatted_address.concat(', , ');
+
+      details= {
+        name: "",
+        formatted_address,
+      }
+
       this.props.onPress(rowData, details);
     }
 
@@ -376,8 +386,17 @@ const GooglePlacesAutocomplete = React.createClass({
             if (this.isMounted()) {
               this._results = responseJSON.predictions;
 
+              let description = text;
+              let commaIndex = text.indexOf(', ');
+
+              if (commaIndex === -1) {
+                description = description.concat(', Create Custom Location');
+              }
+
+              console.log(description);
+
               var customLocationRow = {
-                description: text.concat(", Create Custom Location"),
+                description,
                 customLocation: true,
               }
 
