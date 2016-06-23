@@ -393,8 +393,6 @@ const GooglePlacesAutocomplete = React.createClass({
                 description = description.concat(', Create Custom Location');
               }
 
-              console.log(description);
-
               var customLocationRow = {
                 description,
                 customLocation: true,
