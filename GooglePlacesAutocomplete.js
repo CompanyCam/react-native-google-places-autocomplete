@@ -1,6 +1,6 @@
 const React = require('react');
 const ReactNative = require('react-native');
-const {TextInput, View, ListView, Image, Text, Dimensions, TouchableHighlight, TouchableWithoutFeedback, Platform, ActivityIndicatorIOS, ProgressBarAndroid, PixelRatio} = ReactNative;
+const {TextInput, View, ListView, Image, Text, Dimensions, TouchableHighlight, TouchableWithoutFeedback, Platform, ActivityIndicator, ProgressBarAndroid, PixelRatio} = ReactNative;
 const Qs = require('qs');
 
 const GooglePlacesAutocomplete = React.createClass({
@@ -438,7 +438,7 @@ const GooglePlacesAutocomplete = React.createClass({
       );
     }
     return (
-      <ActivityIndicatorIOS
+      <ActivityIndicator
         animating={true}
         size="small"
       />
