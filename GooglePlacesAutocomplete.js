@@ -26,6 +26,7 @@ const GooglePlacesAutocomplete = React.createClass({
     nearbyPlacesAPI: React.PropTypes.string,
     filterReverseGeocodingByTypes: React.PropTypes.array,
     predefinedPlacesAlwaysVisible: React.PropTypes.bool,
+    backArrowUnderlayColor: React.PropTypes.any,
   },
 
   getDefaultProps() {
@@ -570,7 +571,11 @@ const GooglePlacesAutocomplete = React.createClass({
         <View
           style={this.props.styles.textInputContainer}
         >
-          <TouchableHighlight style={this.props.styles.backArrowContainer} onPress={actionOnBack}>
+          <TouchableHighlight
+            style={this.props.styles.backArrowContainer}
+            onPress={actionOnBack}
+            underlayColor={this.props.backArrowUnderlayColor}
+          >
             <Image source={backArrowImage} style={this.props.styles.backArrow} />
           </TouchableHighlight>
           <TextInput
