@@ -27,6 +27,7 @@ const GooglePlacesAutocomplete = React.createClass({
     filterReverseGeocodingByTypes: React.PropTypes.array,
     predefinedPlacesAlwaysVisible: React.PropTypes.bool,
     backArrowUnderlayColor: React.PropTypes.any,
+    activityIndicatorColor: React.PropTypes.any,
   },
 
   getDefaultProps() {
@@ -74,6 +75,7 @@ const GooglePlacesAutocomplete = React.createClass({
       text: this.props.initialText,
       dataSource: ds.cloneWithRows(this.buildRowsFromResults([])),
       listViewDisplayed: false,
+      loadingResults: false,
     };
   },
 
@@ -129,19 +131,6 @@ const GooglePlacesAutocomplete = React.createClass({
     if (this.refs.textInput) this.refs.textInput.blur();
   },
 
-  getCurrentLocation() {
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        this._requestNearby(position.coords.latitude, position.coords.longitude);
-      },
-      (error) => {
-        this._disableRowLoaders();
-        alert(error.message);
-      },
-      {enableHighAccuracy: true, timeout: 20000, maximumAge: 1000}
-    );
-  },
-
   _enableRowLoader(rowData) {
 
     let rows = this.buildRowsFromResults(this._results);
@@ -173,7 +162,7 @@ const GooglePlacesAutocomplete = React.createClass({
       const lastIndex = rowData.description.lastIndexOf(',');
       let formatted_address = rowData.description;
 
-      if (rowData.description.substring(lastIndex) === ', Create Custom Location') {
+      if (rowData.description.substring(lastIndex) === ', Create Custom Project') {
         formatted_address = rowData.description.substring(0, lastIndex);
       }
 
@@ -238,21 +227,6 @@ const GooglePlacesAutocomplete = React.createClass({
         language: this.props.query.language,
       }));
       request.send();
-    } else if (rowData.isCurrentLocation === true) {
-
-      // display loader
-      this._enableRowLoader(rowData);
-
-
-      this.setState({
-        text: rowData.description,
-      });
-      this.triggerBlur(); // hide keyboard but not the results
-
-      delete rowData.isLoading;
-
-      this.getCurrentLocation();
-
     } else {
       this.setState({
         text: rowData.description,
@@ -270,6 +244,7 @@ const GooglePlacesAutocomplete = React.createClass({
   },
   _results: [],
   _requests: [],
+  _previousResults: [],
 
   _getPredefinedPlace(rowData) {
     if (rowData.isPredefinedPlace !== true) {
@@ -303,76 +278,21 @@ const GooglePlacesAutocomplete = React.createClass({
   },
 
 
-  _requestNearby(latitude, longitude) {
-    this._abortRequests();
-    if (latitude !== undefined && longitude !== undefined && latitude !== null && longitude !== null) {
-      const request = new XMLHttpRequest();
-      this._requests.push(request);
-      request.timeout = this.props.timeout;
-      request.ontimeout = this.props.onTimeout;
-      request.onreadystatechange = () => {
-        if (request.readyState !== 4) {
-          return;
-        }
-        if (request.status === 200) {
-          const responseJSON = JSON.parse(request.responseText);
-
-          this._disableRowLoaders();
-
-          if (typeof responseJSON.results !== 'undefined') {
-            if (this.isMounted()) {
-              var results = [];
-              if (this.props.nearbyPlacesAPI === 'GoogleReverseGeocoding') {
-                results = this._filterResultsByTypes(responseJSON, this.props.filterReverseGeocodingByTypes);
-              } else {
-                results = responseJSON.results;
-              }
-
-              this.setState({
-                dataSource: this.state.dataSource.cloneWithRows(this.buildRowsFromResults(results)),
-              });
-            }
-          }
-          if (typeof responseJSON.error_message !== 'undefined') {
-            console.warn('google places autocomplete: ' + responseJSON.error_message);
-          }
-        } else {
-          // console.warn("google places autocomplete: request could not be completed or has been aborted");
-        }
-      };
-
-      let url = '';
-      if (this.props.nearbyPlacesAPI === 'GoogleReverseGeocoding') {
-        // your key must be allowed to use Google Maps Geocoding API
-        url = 'https://maps.googleapis.com/maps/api/geocode/json?' + Qs.stringify({
-          latlng: latitude+','+longitude,
-          key: this.props.query.key,
-          ...this.props.GoogleReverseGeocodingQuery,
-        });
-      } else {
-        url = 'https://maps.googleapis.com/maps/api/place/nearbysearch/json?' + Qs.stringify({
-          location: latitude+','+longitude,
-          key: this.props.query.key,
-          ...this.props.GooglePlacesSearchQuery,
-        });
-      }
-
-      request.open('GET', url);
-      request.send();
-    } else {
-      this._results = [];
-      this.setState({
-        dataSource: this.state.dataSource.cloneWithRows(this.buildRowsFromResults([])),
-      });
-    }
-  },
-
-
-
-
   _request(text) {
     this._abortRequests();
+
+    let description = text;
+
+    // this will render the previous results, with the new 'text' value in customLocationRow
+    // which will be displayed until the google results return
+    this.setState({
+      dataSource: this.state.dataSource.cloneWithRows(
+        this.buildRowsFromResults([...this._previousResults])
+      ),
+    });
+
     if (text.length >= this.props.minLength) {
+      this.setState({ loadingResults: true });
       const request = new XMLHttpRequest();
       this._requests.push(request);
       request.timeout = this.props.timeout;
@@ -381,82 +301,40 @@ const GooglePlacesAutocomplete = React.createClass({
         if (request.readyState !== 4) {
           return;
         }
+
         if (request.status === 200) {
           const responseJSON = JSON.parse(request.responseText);
           if (typeof responseJSON.predictions !== 'undefined') {
             if (this.isMounted()) {
               this._results = responseJSON.predictions;
 
-              let description = text;
-              let commaIndex = text.indexOf(', ');
-
-              if (commaIndex === -1) {
-                description = description.concat(', Create Custom Location');
-              }
-
-              var customLocationRow = {
-                description,
-                customLocation: true,
-              }
-
-              var listResults = responseJSON.predictions.unshift(customLocationRow);
               this.setState({
                 dataSource: this.state.dataSource.cloneWithRows(this.buildRowsFromResults(responseJSON.predictions)),
               });
+              this.setState({ loadingResults: false });
             }
           }
           if (typeof responseJSON.error_message !== 'undefined') {
             console.warn('google places autocomplete: ' + responseJSON.error_message);
+            this.setState({ loadingResults: false });
           }
         } else {
-          // console.warn("google places autocomplete: request could not be completed or has been aborted");
+          // no reponse from google
+          this._previousResults = [];
+          this.setState({ loadingResults: false });
         }
       };
       request.open('GET', 'https://maps.googleapis.com/maps/api/place/autocomplete/json?&input=' + encodeURI(text) + '&' + Qs.stringify(this.props.query));
       request.send();
-    } else {
-      this._results = [];
-      this.setState({
-        dataSource: this.state.dataSource.cloneWithRows(this.buildRowsFromResults([])),
-      });
     }
   },
   _onChangeText(text) {
+    this._previousResults = this._results;
     this._request(text);
     this.setState({
       text: text,
       listViewDisplayed: true,
     });
-  },
-
-  _getRowLoader() {
-    if (Platform.OS === 'android') {
-      return (
-        <ProgressBarAndroid
-          style={this.props.styles.androidLoader}
-          styleAttr="Inverse"
-        />
-      );
-    }
-    return (
-      <ActivityIndicator
-        animating={true}
-        size="small"
-      />
-    );
-  },
-
-  _renderLoader(rowData) {
-    if (rowData.isLoading === true) {
-      return (
-        <View
-          style={this.props.styles.loader}
-        >
-          {this._getRowLoader()}
-        </View>
-      );
-    }
-    return null;
   },
 
   _renderRow(rowData = {}) {
@@ -467,36 +345,24 @@ const GooglePlacesAutocomplete = React.createClass({
 
     return (
       <TouchableHighlight
-        onPress={() =>
-          this._onPress(rowData)
-        }
+        onPress={() => this._onPress(rowData)}
         underlayColor={this.props.rowUnderlayColor}
       >
-          <View style={rowData.customLocation ? myStyles.customLocationRow : myStyles.row}>
-            <View style={rowData.customLocation ? myStyles.customLocationLeftModule : myStyles.leftModule}>
+          <View style={myStyles.row}>
+            <View style={myStyles.leftModule}>
 
-            <Text
-              style={rowData.customLocation ? myStyles.customLocationDescription1 : myStyles.description1}
-              numberOfLines={1}
-            >
+            <Text style={myStyles.description1} numberOfLines={1}>
               {descriptionSplit[0]}
             </Text>
-            <Text
-              style={rowData.customLocation ? myStyles.customLocationDescription2 : myStyles.description2}
-              numberOfLines={1}
-            >
+            <Text style={myStyles.description2} numberOfLines={1}>
               {descriptionSplit[1]}
             </Text>
           </View>
 
-          <View style={rowData.customLocation ? myStyles.customLocationRowImageWrapper : myStyles.rowImageWrapper}>
-            <Image style={rowData.customLocation ? myStyles.customLocationRowImage : myStyles.rowImage}
-              source={rowData.customLocation ? this.props.customLocationRowImage : this.props.rowImage}
-              />
+          <View style={myStyles.rowImageWrapper}>
+            <Image style={myStyles.rowImage} source={this.props.rowImage}/>
           </View>
 
-
-            {this._renderLoader(rowData)}
         </View>
       </TouchableHighlight>
     );
@@ -511,10 +377,60 @@ const GooglePlacesAutocomplete = React.createClass({
     this.setState({listViewDisplayed: true});
   },
 
+
+
+  _getCustomLocationButton() {
+    if (this.state.text !== '') {
+      const customLocationData = {
+        description: this.state.text,
+        customLocation: true,
+      }
+      const myStyles = this.props.styles;
+
+      return (
+        <TouchableHighlight
+          onPress={() => this._onPress(customLocationData)}
+          underlayColor={this.props.rowUnderlayColor}
+        >
+          <View style={myStyles.customLocationRow}>
+            <View style={myStyles.customLocationLeftModule}>
+              <Text
+                style={myStyles.customLocationDescription1}
+                numberOfLines={1}
+              >
+                {this.state.text}
+              </Text>
+              <Text
+                style={myStyles.customLocationDescription2}
+                numberOfLines={1}
+              >
+                Create Custom Location
+              </Text>
+            </View>
+
+            <View style={myStyles.customLocationRowImageWrapper}>
+              <Image style={myStyles.customLocationRowImage}
+                source={this.props.customLocationRowImage}
+                />
+            </View>
+          </View>
+        </TouchableHighlight>
+      );
+    }
+    return;
+  },
+
   _getListView() {
     if ((this.state.text !== '' || this.props.predefinedPlaces.length) && this.state.listViewDisplayed === true) {
+      let myStyles = this.props.styles;
       return (
         <View>
+          {
+            this.state.loadingResults &&
+            <View style={myStyles.listFooterView}>
+              <ActivityIndicator animating color={this.props.activityIndicatorColor} />
+            </View>
+          }
           <ListView
             keyboardShouldPersistTaps={true}
             keyboardDismissMode="on-drag"
@@ -525,11 +441,19 @@ const GooglePlacesAutocomplete = React.createClass({
 
             {...this.props}
           />
+          {
+            !this.state.loadingResults && this.state.dataSource.getRowCount() === 0 &&
+            <View style={[myStyles.listFooterView, { marginTop: 20 }]}>
+              <Text style={myStyles.noResultsText}>
+                No Google results available
+              </Text>
+            </View>
+          }
           <View
-            style={this.props.styles.poweredLogoContainer}
+            style={myStyles.poweredLogoContainer}
           >
             <Image
-              style={this.props.styles.poweredLogo}
+              style={myStyles.poweredLogo}
               resizeMode={Image.resizeMode.contain}
               source={require('./images/powered_by_google_on_white.png')}
             />
@@ -591,25 +515,11 @@ const GooglePlacesAutocomplete = React.createClass({
             autoCorrect={false}
           />
         </View>
+        {this._getCustomLocationButton()}
         {this._getListView()}
       </View>
     );
   },
 });
 
-
-// this function is still present in the library to be retrocompatible with version < 1.1.0
-const create = function create(options = {}) {
-  return React.createClass({
-    render() {
-      return (
-        <GooglePlacesAutocomplete ref="GooglePlacesAutocomplete"
-          {...options}
-        />
-      );
-    },
-  });
-};
-
-
-module.exports = {GooglePlacesAutocomplete, create};
+module.exports = {GooglePlacesAutocomplete};
