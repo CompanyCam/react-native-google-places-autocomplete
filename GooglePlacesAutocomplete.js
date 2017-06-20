@@ -2,6 +2,7 @@ const React = require('react');
 const ReactNative = require('react-native');
 const {TextInput, View, ListView, Image, Text, Dimensions, TouchableHighlight, TouchableWithoutFeedback, Platform, ActivityIndicator, ProgressBarAndroid, PixelRatio} = ReactNative;
 const Qs = require('qs');
+import _ from 'lodash';
 
 const GooglePlacesAutocomplete = React.createClass({
 
@@ -104,6 +105,10 @@ const GooglePlacesAutocomplete = React.createClass({
     return [...res, ...results];
   },
 
+  componentWillMount() {
+    this._request = _.debounce(this._request, 600);
+  },
+
   componentWillUnmount() {
     this._abortRequests();
   },
@@ -120,7 +125,7 @@ const GooglePlacesAutocomplete = React.createClass({
    * @public
    */
   triggerFocus() {
-    if (this.refs.textInput) this.refs.textInput.focus();
+    if (this.textInput) this.textInput.focus();
   },
 
   /**
@@ -128,7 +133,7 @@ const GooglePlacesAutocomplete = React.createClass({
    * @public
    */
   triggerBlur() {
-    if (this.refs.textInput) this.refs.textInput.blur();
+    if (this.textInput) this.textInput.blur();
   },
 
   _enableRowLoader(rowData) {
@@ -280,6 +285,8 @@ const GooglePlacesAutocomplete = React.createClass({
 
   _request(text) {
     this._abortRequests();
+
+    console.log('request');
 
     let description = text;
 
@@ -504,7 +511,7 @@ const GooglePlacesAutocomplete = React.createClass({
           </TouchableHighlight>
           <TextInput
             { ...userProps }
-            ref="textInput"
+            ref={(r) => { this.textInput = r; }}
             autoFocus={this.props.autoFocus}
             style={this.props.styles.textInput}
             onChangeText={onChangeText ? text => {this._onChangeText(text); onChangeText(text)} : this._onChangeText}
