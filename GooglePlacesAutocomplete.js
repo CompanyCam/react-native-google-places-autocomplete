@@ -432,21 +432,20 @@ const GooglePlacesAutocomplete = React.createClass({
       return (
         <View>
           {
-            this.state.loadingResults &&
+            this.state.loadingResults ?
             <View style={myStyles.listFooterView}>
               <ActivityIndicator animating color={this.props.activityIndicatorColor} />
             </View>
-          }
-          <ListView
-            keyboardShouldPersistTaps={true}
-            keyboardDismissMode="on-drag"
-            style={this.props.styles.listView}
-            dataSource={this.state.dataSource}
-            renderRow={this._renderRow}
-            automaticallyAdjustContentInsets={false}
+            : <ListView
+                keyboardShouldPersistTaps={true}
+                keyboardDismissMode="on-drag"
+                style={this.props.styles.listView}
+                dataSource={this.state.dataSource}
+                renderRow={this._renderRow}
+                automaticallyAdjustContentInsets={false}
 
-            {...this.props}
-          />
+                {...this.props}
+              />
           {
             !this.state.loadingResults && this.state.dataSource.getRowCount() === 0 &&
             <View style={[myStyles.listFooterView, { marginTop: 20 }]}>
