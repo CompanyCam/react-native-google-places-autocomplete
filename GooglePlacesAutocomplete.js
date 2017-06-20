@@ -446,6 +446,7 @@ const GooglePlacesAutocomplete = React.createClass({
 
                 {...this.props}
               />
+          }
           {
             !this.state.loadingResults && this.state.dataSource.getRowCount() === 0 &&
             <View style={[myStyles.listFooterView, { marginTop: 20 }]}>
