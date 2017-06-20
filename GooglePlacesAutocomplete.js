@@ -286,8 +286,6 @@ const GooglePlacesAutocomplete = React.createClass({
   _request(text) {
     this._abortRequests();
 
-    console.log('request');
-
     let description = text;
 
     // this will render the previous results, with the new 'text' value in customLocationRow
@@ -341,6 +339,7 @@ const GooglePlacesAutocomplete = React.createClass({
     this.setState({
       text: text,
       listViewDisplayed: true,
+      loadingResults: true,
     });
   },
 
