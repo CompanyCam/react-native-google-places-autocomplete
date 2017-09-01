@@ -29,6 +29,8 @@ const GooglePlacesAutocomplete = React.createClass({
     predefinedPlacesAlwaysVisible: React.PropTypes.bool,
     backArrowUnderlayColor: React.PropTypes.any,
     activityIndicatorColor: React.PropTypes.any,
+    useCustomTextInput: React.PropTypes.bool,
+    queryText: React.PropTypes.string,
   },
 
   getDefaultProps() {
@@ -62,6 +64,7 @@ const GooglePlacesAutocomplete = React.createClass({
       nearbyPlacesAPI: 'GooglePlacesSearch',
       filterReverseGeocodingByTypes: [],
       predefinedPlacesAlwaysVisible: false,
+      useCustomTextInput: false,
     };
   },
 
@@ -107,6 +110,18 @@ const GooglePlacesAutocomplete = React.createClass({
 
   componentWillMount() {
     this._request = _.debounce(this._request, 600);
+
+    if (this.props.initialText) {
+      this._onChangeText(this.props.initialText);
+    }
+  },
+
+  componentWillUpdate(nextProps) {
+    if (nextProps.useCustomTextInput) {
+      if (nextProps.queryText !== this.props.queryText) {
+        this._onChangeText(nextProps.queryText);
+      }
+    }
   },
 
   componentWillUnmount() {
@@ -437,7 +452,7 @@ const GooglePlacesAutocomplete = React.createClass({
               <ActivityIndicator animating color={this.props.activityIndicatorColor} />
             </View>
             : <ListView
-                keyboardShouldPersistTaps={true}
+                keyboardShouldPersistTaps="always"
                 keyboardDismissMode="on-drag"
                 style={this.props.styles.listView}
                 dataSource={this.state.dataSource}
@@ -495,32 +510,31 @@ const GooglePlacesAutocomplete = React.createClass({
     } = this.props.textInputProps;
 
     return (
-      <View
-        style={this.props.styles.container}
-      >
-        <View
-          style={this.props.styles.textInputContainer}
-        >
-          <TouchableHighlight
-            style={this.props.styles.backArrowContainer}
-            onPress={actionOnBack}
-            underlayColor={this.props.backArrowUnderlayColor}
-          >
-            <Image source={backArrowImage} style={this.props.styles.backArrow} />
-          </TouchableHighlight>
-          <TextInput
-            { ...userProps }
-            ref={(r) => { this.textInput = r; }}
-            autoFocus={this.props.autoFocus}
-            style={this.props.styles.textInput}
-            onChangeText={onChangeText ? text => {this._onChangeText(text); onChangeText(text)} : this._onChangeText}
-            value={this.state.text}
-            placeholder={this.props.placeholder}
-            onFocus={onFocus ? () => {this._onFocus(); onFocus()} : this._onFocus}
-            clearButtonMode="while-editing"
-            autoCorrect={false}
-          />
-        </View>
+      <View style={this.props.styles.container}>
+        {
+          !this.props.useCustomTextInput &&
+            <View style={this.props.styles.textInputContainer}>
+              <TouchableHighlight
+                style={this.props.styles.backArrowContainer}
+                onPress={actionOnBack}
+                underlayColor={this.props.backArrowUnderlayColor}
+              >
+                <Image source={backArrowImage} style={this.props.styles.backArrow} />
+              </TouchableHighlight>
+              <TextInput
+                { ...userProps }
+                ref={(r) => { this.textInput = r; }}
+                autoFocus={this.props.autoFocus}
+                style={this.props.styles.textInput}
+                onChangeText={onChangeText ? text => {this._onChangeText(text); onChangeText(text)} : this._onChangeText}
+                value={this.state.text}
+                placeholder={this.props.placeholder}
+                onFocus={onFocus ? () => {this._onFocus(); onFocus()} : this._onFocus}
+                clearButtonMode="while-editing"
+                autoCorrect={false}
+              />
+            </View>
+      }
         {this._getCustomLocationButton()}
         {this._getListView()}
       </View>
